@@ -12,7 +12,7 @@ def test_remove_urls():
 
 
 def test_remove_http_urls():
-    assert clean_tweet("Visit http://x.com now") == "visit  now"
+    assert clean_tweet("Visit http://x.com now") == "visit now"
 
 
 def test_remove_multiple_mentions():
