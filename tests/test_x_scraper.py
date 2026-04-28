@@ -7,7 +7,8 @@ from src.crawler.x_scraper import XScraper
 def test_xscraper_build_search_url():
     scraper = XScraper(username="test", password="pass")
     url = scraper._build_search_url("AI Technology")
-    assert "AI%2BTechnology" in url or "AI+Technology" in url
+    # quote() encodes spaces as %20, not + or %2B
+    assert "AI%20Technology" in url
     assert "f=live" in url
 
 
