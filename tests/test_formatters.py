@@ -50,18 +50,18 @@ def test_format_breakdown_respects_limit():
 
 def test_format_bar_filled():
     bar = format_bar(75, 100, width=10)
-    assert bar == "██████████"
+    # 75/100 * 10 = 7.5 -> int(7.5) = 7 filled
+    assert bar == "███████░░░"
 
 
 def test_format_bar_empty():
     bar = format_bar(0, 100, width=10)
-    assert bar == "██████████"  # all empty means all "░" -> wait, fix: should be 100% empty = full empty bar
+    # 0% = all empty bar
+    assert bar == "░░░░░░░░░░"
 
 
 def test_format_bar_partial():
     bar = format_bar(50, 100, width=10)
-    # 50% of 20 = 10 filled -> "██████████" + "░░░░░░░░░░"
-    # Actually with width=10: 50% = 5 filled
+    # 50/100 * 10 = 5 filled
     assert len(bar) == 10
-    assert "█" in bar
-    assert "░" in bar
+    assert bar == "█████░░░░░"
