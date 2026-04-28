@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from src.crawler.x_scraper import XScraper, Tweet, ScrapeResult
-from src.engine.sentiment_analyzer import SentimentAnalyzer
+from src.engine.sentiment_analyzer import SentimentAnalyzer, SentimentResult
 from src.engine.preprocessor import clean_tweet
 from src.cli.formatters import format_stats
 
