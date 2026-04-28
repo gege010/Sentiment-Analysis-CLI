@@ -1,6 +1,4 @@
 import typer
-from typing import Optional
-from src.config.settings import load_settings
 from src.engine.sentiment_analyzer import SentimentAnalyzer
 from src.engine.preprocessor import clean_tweet
 from src.crawler.x_scraper import XScraper, XScrapeError
@@ -8,12 +6,23 @@ from src.cli.dashboard import print_dashboard
 from src.cli.formatters import format_stats, format_breakdown
 from src.output.exporter import Exporter
 
+__version__ = "0.1.0"
 
-analyze_app = typer.Typer(help="Analyze sentiment for a topic on X.com")
+app = typer.Typer(
+    name="sentiment-cli",
+    help="Sentiment analysis CLI for X.com (Twitter) tweets",
+)
 export_app = typer.Typer(help="Export previously saved results")
+app.add_typer(export_app, name="export")
 
 
-@analyze_app.command("analyze")
+@app.command("version")
+def version() -> None:
+    """Print version."""
+    typer.echo(f"sentiment-cli v{__version__}")
+
+
+@app.command()
 def analyze(
     topic: str = typer.Option(..., "--topic", "-t", help="Topic to analyze"),
     count: int = typer.Option(200, "--count", "-c", help="Number of tweets to scrape"),
@@ -23,12 +32,14 @@ def analyze(
         help="Export types: csv, json (comma-separated)"),
     output_dir: str = typer.Option("./output", "--output-dir", "-o",
         help="Directory for exported files"),
-    headful: bool = typer.Option(False, "--headful", help="Show browser window (default: headless)"),
+    headful: bool = typer.Option(False, "--headful",
+        help="Show browser window (default: headless)"),
 ) -> None:
     """
     Analyze sentiment for a given topic from X.com.
     """
     try:
+        from src.config.settings import load_settings
         settings = load_settings()
     except ValueError as e:
         typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
@@ -67,11 +78,9 @@ def analyze(
     elif format == "stats":
         typer.echo(format_stats(topic, sentiment_results))
     elif format == "breakdown":
-        lines = format_breakdown(sentiment_results)
-        for line in lines:
+        for line in format_breakdown(sentiment_results):
             typer.echo(line)
 
-    # Export if requested
     if export:
         exporter = Exporter(output_dir=output_dir)
         for fmt in export.split(","):
@@ -84,7 +93,7 @@ def analyze(
                 typer.secho(f"JSON exported to: {path}", fg=typer.colors.GREEN)
 
 
-@export_app.command("export")
+@export_app.command()
 def export_cmd(
     topic: str = typer.Option(..., "--topic", "-t", help="Topic name"),
     path: str = typer.Option(..., "--path", "-p", help="Path to results JSON"),
@@ -100,7 +109,5 @@ def export_cmd(
     except Exception as e:
         typer.secho(f"Failed to read file: {e}", fg=typer.colors.RED)
         raise typer.Exit(1)
-
-    exporter = Exporter(output_dir=str(Path(path).parent))
 
     typer.echo(f"Results from: {data.get('topic', topic)}")
