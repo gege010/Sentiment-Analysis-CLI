@@ -35,11 +35,12 @@ def format_breakdown(results: List[SentimentResult], limit: int = 20) -> List[st
     """
     lines = []
     for i, r in enumerate(results[:limit], 1):
-        emoji = {"positive": "✅", "neutral": "😐", "negative": "❌"}.get(r.label, "•")
+        # Use ASCII-friendly symbols
+        symbol = {"positive": "[+]", "neutral": "[=]", "negative": "[-]"}.get(r.label, "[*]")
         label = r.label.upper()
         conf = f"{r.confidence:.0%}"
         preview = r.text[:80] + ("..." if len(r.text) > 80 else "")
-        lines.append(f"{i:3}. {emoji} [{label}] (conf:{conf}) {preview}")
+        lines.append(f"{i:3}. {symbol} {label} (conf:{conf}) {preview}")
 
     if len(results) > limit:
         lines.append(f"... and {len(results) - limit} more tweets.")
@@ -50,6 +51,6 @@ def format_breakdown(results: List[SentimentResult], limit: int = 20) -> List[st
 def format_bar(count: int, total: int, width: int = 20) -> str:
     """Return a simple ASCII bar."""
     if total == 0:
-        return "░" * width
+        return "-" * width
     filled = int(count / total * width)
-    return "█" * filled + "░" * (width - filled)
+    return "#" * filled + "-" * (width - filled)

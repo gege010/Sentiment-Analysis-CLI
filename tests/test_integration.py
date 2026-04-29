@@ -14,12 +14,13 @@ def test_preprocess_then_analyze_mocked():
     assert "http" not in cleaned
     assert "@" not in cleaned
 
-    with patch("transformers.pipeline") as mock_pipe:
-        mock_pipe.return_value = [{"label": "positive", "score": 0.92}]
-        analyzer = SentimentAnalyzer()
-        result = analyzer.analyze(cleaned)
-        assert result.label == "positive"
-        assert result.confidence > 0.9
+    mock_pipe_instance = MagicMock(return_value=[{"label": "positive", "score": 0.92}])
+
+    analyzer = SentimentAnalyzer()
+    analyzer._pipe = mock_pipe_instance
+    result = analyzer.analyze(cleaned)
+    assert result.label == "positive"
+    assert result.confidence > 0.9
 
     stats = format_stats("AI", [result])
     assert "AI" in stats
@@ -42,15 +43,16 @@ def test_full_flow_batch_mocked():
         else:
             return [{"label": "neutral", "score": 0.72}]
 
-    with patch("transformers.pipeline") as mock_pipe:
-        mock_pipe.side_effect = pipe_side_effect
-        analyzer = SentimentAnalyzer()
-        results = analyzer.analyze_batch([clean_tweet(t) for t in texts])
-        assert len(results) == 3
-        labels = {r.label for r in results}
-        assert "positive" in labels
-        assert "negative" in labels
-        assert "neutral" in labels
+    mock_pipe_instance = MagicMock(side_effect=pipe_side_effect)
+
+    analyzer = SentimentAnalyzer()
+    analyzer._pipe = mock_pipe_instance
+    results = analyzer.analyze_batch([clean_tweet(t) for t in texts])
+    assert len(results) == 3
+    labels = {r.label for r in results}
+    assert "positive" in labels
+    assert "negative" in labels
+    assert "neutral" in labels
 
 
 def test_scrape_result_dataclass():

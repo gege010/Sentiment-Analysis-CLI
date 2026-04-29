@@ -63,29 +63,29 @@ def print_dashboard(
     top_neg_text = top_neg[0].text[:100] if top_neg[0] else "N/A"
 
     highlights = (
-        f"[green]Top Positive:[/green] {top_pos_text}\n"
-        f"[red]Top Negative:[/red] {top_neg_text}"
+        f"[green]+ Top Positive:[/green] {top_pos_text}\n"
+        f"[red]- Top Negative:[/red] {top_neg_text}"
     )
 
     console.print()
     console.print(
         Panel(
             table,
-            title=f"[bold]📊 Sentiment Analysis: {topic}[/bold]",
+            title=f"[bold][CHART] Sentiment Analysis: {topic}[/bold]",
             border_style="cyan",
         )
     )
     console.print()
     console.print(
-        f"  [green]Positive[/green]  {pos_bar}  "
+        f"  [green]+ Positive[/green]  {pos_bar}  "
         f"{counts['positive']:>4} ({pos_pct})"
     )
     console.print(
-        f"  [yellow]Neutral [/yellow]  {neu_bar}  "
+        f"  [yellow]= Neutral [/yellow]  {neu_bar}  "
         f"{counts['neutral']:>4} ({neu_pct})"
     )
     console.print(
-        f"  [red]Negative[/red]  {neg_bar}  "
+        f"  [red]- Negative[/red]  {neg_bar}  "
         f"{counts['negative']:>4} ({neg_pct})"
     )
     console.print()
