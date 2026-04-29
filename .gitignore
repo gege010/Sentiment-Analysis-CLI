@@ -14,6 +14,12 @@ build/
 # Playwright
 .playwright/
 
+# Claude Code
+.claude/
+
+# Output (runtime reports)
+output/
+
 # IDE
 .vscode/
 .idea/
