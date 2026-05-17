@@ -67,31 +67,70 @@ def scrape_with_topics(
 
 @app.command()
 def analyze(
-    topic: str = typer.Option(..., "--topic", "-t", help="Topic to analyze"),
-    count: int = typer.Option(200, "--count", "-c", help="Number of tweets to scrape"),
-    format: str = typer.Option("dashboard", "--format", "-f",
-        help="Output format: dashboard, stats, breakdown"),
-    export: str = typer.Option("", "--export", "-e",
-        help="Export types: csv, json (comma-separated)"),
-    output_dir: str = typer.Option("./output", "--output-dir", "-o",
-        help="Directory for exported files"),
-    headful: bool = typer.Option(False, "--headful",
-        help="Show browser window (default: headless)"),
-    debug: bool = typer.Option(False, "--debug",
-        help="Show raw tweets before analysis (for debugging)"),
-    expand: bool = typer.Option(True, "--expand/--no-expand",
-        help="Expand topic to related terms (default: enabled)"),
+    topic: str = typer.Option(None, "--topic", "-t", help="Topic to analyze"),
+    count: int = typer.Option(None, "--count", "-c", help="Number of tweets to scrape"),
+    format: str = typer.Option(None, "--format", "-f", help="Output format: dashboard, stats, breakdown"),
+    export: str = typer.Option(None, "--export", "-e", help="Export types: csv, json (comma-separated)"),
+    output_dir: str = typer.Option("./output", "--output-dir", "-o", help="Directory for exported files"),
+    headful: bool = typer.Option(False, "--headful", help="Show browser window (default: headless)"),
+    debug: bool = typer.Option(False, "--debug", help="Show raw tweets before analysis (for debugging)"),
+    expand: bool = typer.Option(None, "--expand/--no-expand", help="Expand topic to related terms (default: enabled)"),
 ) -> None:
     """
     Analyze sentiment for a given topic from X.com.
     Uses topic expansion and multi-source scraping for better data coverage.
     """
+    # 1. Load Settings
     try:
         from src.config.settings import load_settings
         settings = load_settings()
     except ValueError as e:
-        typer.secho(f"Error: {e}", fg=typer.colors.RED, err=True)
+        typer.secho(f"Error Validasi X.com: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(1)
+
+    # 2. Validasi Autentikasi secara aktif (Request ke X.com)
+    typer.secho("Memvalidasi koneksi ke X.com...", fg=typer.colors.YELLOW)
+    scraper = XScraper(
+        username=settings.x_username,
+        password=settings.x_password,
+        headless=not headful,
+        tweet_count=1, # Dummy count for auth validation
+        cookies=settings.cookies,
+    )
+    
+    is_valid = scraper.verify_auth()
+    
+    if not is_valid:
+        typer.secho("\n[ERROR] Cookies Anda kedaluwarsa atau tidak valid (X.com meminta login).", fg=typer.colors.RED, err=True)
+        typer.secho("\n=========================================================================", fg=typer.colors.YELLOW)
+        typer.secho("HARAP PERBARUI COOKIES SECARA MANUAL:", fg=typer.colors.WHITE)
+        typer.secho("1. Buka X.com di browser tempat Anda login.", fg=typer.colors.WHITE)
+        typer.secho("2. Tekan tombol F12 (Developer Tools) -> Pilih tab 'Application'.", fg=typer.colors.WHITE)
+        typer.secho("3. Di panel sebelah kiri, buka 'Storage' -> 'Cookies' -> 'https://x.com'.", fg=typer.colors.WHITE)
+        typer.secho("4. Copy nilai (Value) dari 'auth_token', 'ct0', dan 'guest_id'.", fg=typer.colors.WHITE)
+        typer.secho("5. Paste nilai-nilai tersebut ke file '.env' di folder proyek ini.", fg=typer.colors.WHITE)
+        typer.secho("=========================================================================\n", fg=typer.colors.YELLOW)
+        raise typer.Exit(1)
+        
+    typer.secho("✓ X.com Authentication / Cookies Validated", fg=typer.colors.GREEN)
+    typer.echo()
+
+    # 3. Prompts Interaktif (jika tidak diisi via argumen CLI)
+    if topic is None:
+        topic = typer.prompt("Masukkan nama produk/topik yang ingin dianalisis")
+    
+    if count is None:
+        count = typer.prompt("Jumlah tweet yang ingin difetch", default=200, type=int)
+        
+    if format is None:
+        format = typer.prompt("Format output (dashboard/stats/breakdown)", default="dashboard")
+        
+    if export is None:
+        export_input = typer.prompt("Format export data (csv/json/kosongkan jika tidak perlu)", default="")
+        export = export_input if export_input.strip() else ""
+        
+    if expand is None:
+        expand = typer.confirm("Gunakan perluasan topik secara otomatis?", default=True)
 
     # Topic expansion
     if expand:

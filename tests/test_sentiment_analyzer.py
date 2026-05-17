@@ -14,10 +14,10 @@ def _mock_sentiment_pipe(label: str, score: float) -> MagicMock:
 def test_analyzer_returns_result():
     analyzer = SentimentAnalyzer()
     analyzer._pipe = _mock_sentiment_pipe("positive", 0.9)
-    result = analyzer.analyze("This is wonderful!")  # "wonderful" triggers lexicon
+    result = analyzer.analyze("This is wonderful!")
     assert isinstance(result, SentimentResult)
     assert result.label == "positive"
-    assert 0.85 <= result.confidence <= 1.0  # Lexicon may boost
+    assert result.confidence == 0.9
 
 
 def test_analyzer_has_confidence():

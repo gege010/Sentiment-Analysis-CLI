@@ -110,6 +110,52 @@ class XScraper:
 
         return context
 
+    def verify_auth(self) -> bool:
+        """
+        Verify if the current cookies are valid by attempting to access X.com.
+        Returns True if authenticated, False if redirected to login.
+        """
+        pw = None
+        browser = None
+        try:
+            from playwright.sync_api import sync_playwright
+            pw = sync_playwright().start()
+            browser = pw.chromium.launch(headless=True)
+            context = self._create_context_with_cookies(pw)
+            page = context.new_page() if not context.pages else context.pages[0]
+            
+            # Go to the search page directly to test auth
+            page.goto("https://x.com/search?q=test", wait_until="domcontentloaded")
+            
+            # Wait for either a tweet to appear (authenticated), 
+            # or the login modal/redirect to appear (unauthenticated)
+            try:
+                # wait up to 10 seconds for either sign-in button or a tweet article
+                page.wait_for_selector('article[data-testid="tweet"], a[data-testid="loginButton"], a[href="/login"], [data-testid="LoginForm_Login_Button"]', timeout=10000)
+            except Exception:
+                pass
+                
+            current_url = page.url
+            if "login" in current_url.lower() or "logout" in current_url.lower():
+                return False
+                
+            # If we see a login button on the page, we are not authenticated
+            login_elements = page.query_selector_all('a[data-testid="loginButton"], a[href="/login"], [data-testid="LoginForm_Login_Button"]')
+            if len(login_elements) > 0:
+                return False
+            
+            return True
+        except Exception:
+            return False
+        finally:
+            if browser:
+                browser.close()
+            if pw:
+                try:
+                    pw.stop()
+                except Exception:
+                    pass
+
     def scrape(self, topic: str) -> ScrapeResult:
         """
         Main entry point. Scrape tweets for topic using cookie auth.
@@ -163,6 +209,18 @@ class XScraper:
         try:
             page.wait_for_selector('article[data-testid="tweet"]', timeout=20000)
         except Exception:
+            try:
+                page.screenshot(path="error_screenshot.png", full_page=True)
+                print(f"\n[DEBUG] Current URL: {page.url}")
+                
+                # Save inner text to see what X is rendering (e.g., login page, rate limit)
+                with open("error_page_text.txt", "w", encoding="utf-8") as f:
+                    f.write(page.inner_text("body"))
+                    
+                print("Screenshot saved to error_screenshot.png")
+                print("Page text saved to error_page_text.txt")
+            except Exception as e:
+                print(f"Failed to save debug info: {e}")
             raise XScrapeError("No tweets found. X.com may be blocking the request.")
         self.limiter.wait()
 

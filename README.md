@@ -6,7 +6,7 @@ CLI tool for sentiment analysis of X.com (Twitter) tweets using HuggingFace Tran
 
 - **Smart Topic Expansion** - Automatically expands topics into related terms for better data coverage
 - **Multi-Source Scraping** - Scrapes from multiple related searches simultaneously
-- **Sentiment Analysis** - Uses `cardiffnlp/twitter-roberta-base-sentiment-latest` with Indonesian lexicon boost
+- **Sentiment Analysis** - Uses IndoBERT (`w11wo/indonesian-roberta-base-sentiment-classifier`)
 - **Indonesian Language Support** - Enhanced accuracy for Indonesian slang and emoticons
 - **Interactive Rich CLI Dashboard** - Visual sentiment breakdown with highlights
 - **Export to CSV/JSON** - Save results for further analysis
@@ -30,66 +30,54 @@ playwright install chromium
 cp .env.example .env
 ```
 
-## Authentication (Cookie Method - Recommended)
+## Authentication (Cookie Method - Required)
 
-### Option 1: Auto-export cookies (Recommended)
-1. Log into X.com in Chrome browser
-2. Run the export script:
-   ```bash
-   python scripts/export_cookies.py --save
-   ```
-   This will extract cookies from Chrome and save them to `.env`
+X.com requires authentication to scrape tweets. The CLI validates your cookies before allowing you to run any analysis.
 
-### Option 2: Manual cookies
-1. Log into X.com in Chrome browser
-2. Open DevTools (F12) → Application → Cookies → x.com
-3. Copy these values to your `.env`:
-   ```
+### Manual Cookies (100% Reliable)
+Due to Windows security and browser profile locking, manual cookie extraction is the required and most reliable method.
+
+1. Log into X.com in your web browser.
+2. Open Developer Tools (F12) → Application → Cookies → `https://x.com`
+3. Copy these three values to your `.env` file:
+   ```env
    X_COOKIE_AUTH_TOKEN=your_auth_token
-   X_COOKIE_CT0=your_csrf_token
-   X_COOKIE_GUEST_ID=your_guest_id
+   X_COOKIE_CT0=your_ct0_value
+   X_COOKIE_GUEST_ID=your_guest_id_value
    ```
 
-### Option 3: Username/Password (May be blocked)
-```
+### Username/Password (Fallback - May be blocked)
+```env
 X_USERNAME=your_email
 X_PASSWORD=your_password
 ```
-Note: X.com may block this method with verification challenges.
+*Note: X.com often blocks this method with verification challenges, so Cookies are highly recommended.*
 
 ## Usage
 
-### Basic Commands
+The CLI is fully interactive. Simply run the `analyze` command and follow the prompts:
+
 ```bash
-# Interactive dashboard (default)
-python -m src.main analyze --topic "AI Technology"
-
-# Stats only
-python -m src.main analyze --topic "AI" --format stats
-
-# Per-tweet breakdown
-python -m src.main analyze --topic "Machine Learning" --format breakdown
-
-# Export results
-python -m src.main analyze --topic "AI" --export csv,json
-
-# Custom tweet count
-python -m src.main analyze --topic "AI" --count 100
+python -m src.main analyze
 ```
 
-### Advanced Options
+The program will interactively ask for:
+- Product/Topic name
+- Number of tweets to fetch
+- Output format (dashboard/stats/breakdown)
+- Export format (csv/json/none)
+- Output directory
+- Whether to use auto topic expansion
+
+### Advanced / Scripting Options
+You can still bypass the interactive prompts by providing the options directly:
+
 ```bash
 # Debug mode - show raw tweets and sentiment for verification
-python -m src.main analyze --topic "MBG" --debug
+python -m src.main analyze --topic "MBG" --count 100 --debug
 
-# Disable topic expansion (use exact search term)
-python -m src.main analyze --topic "MBG" --no-expand
-
-# Show browser window (for debugging scraping)
-python -m src.main analyze --topic "AI" --headful
-
-# Combine options
-python -m src.main analyze --topic "MBG" --count 100 --debug --export csv
+# Combine options for scripting
+python -m src.main analyze --topic "MBG" --count 100 --format dashboard --export csv --no-expand
 ```
 
 ### Topic Expansion Examples
@@ -112,22 +100,24 @@ Scraping from 14 sources...
   [1/14] Scraping: 'Prabowo Subianto' ... -> Got 50 new tweets (Total: 50)
   [2/14] Scraping: 'dapur MBG' ... -> Got 50 new tweets (Total: 100)
 
-+---------------------- [CHART] Sentiment Analysis: MBG ----------------------+
-|   Topic             MBG                                                     |
++---------------------- [CHART] Product Grades Report: MBG ---------------------+
+|   Topic/Product     MBG                                                     |
 |   Total Tweets      100                                                     |
-|   Avg Confidence    79.7%                                                   |
-|   Positive          22 (22.0%)                                              |
-|   Neutral           63 (63.0%)                                              |
-|   Negative          15 (15.0%)                                              |
+|   Product Grade     B (Baik)                                                |
+|   Grade Score       72.5/100                                                |
+|   Avg Confidence    85.2%                                                   |
+|   Positive          45 (45.0%)                                              |
+|   Neutral           55 (55.0%)                                              |
+|   Negative          0 (0.0%)                                                |
 +-----------------------------------------------------------------------------+
 
-  + Positive  ####----------------    22 (22.0%)
-  = Neutral   ############--------    63 (63.0%)
-  - Negative  ###-----------------    15 (15.0%)
+  + Positive  #########-----------    45 (45.0%)
+  = Neutral   ###########---------    55 (55.0%)
+  - Negative  --------------------     0 (0.0%)
 
 +-------------------------------- Highlights ---------------------------------+
-| + Top Positive: proyek kereta api whoosh di zaman jokowi...               |
-| - Top Negative: train collision leaves 15 dead in indonesia...              |
+| + Top Positive: program MBG ini sangat membantu meringankan beban...        |
+| - Top Negative: N/A                                                         |
 +-----------------------------------------------------------------------------+
 ```
 
@@ -170,20 +160,18 @@ sentiment-cli/
 │   │   ├── dashboard.py       # Rich dashboard UI
 │   │   └── formatters.py      # Output formatters
 │   ├── config/
-│   │   └── settings.py        # Settings loader (cookie & credentials)
+│   │   ├── settings.py        # Settings loader (cookie & credentials)
+│   │   └── cookie_manager.py  # Cookie extraction utility
 │   ├── crawler/
 │   │   ├── rate_limiter.py       # Rate limiting
 │   │   ├── topic_expander.py      # Topic expansion logic
 │   │   └── x_scraper.py           # X.com scraper
 │   ├── engine/
-│   │   ├── indonesian_lexicon.py  # Indonesian slang/emoticon lexicon
 │   │   ├── preprocessor.py       # Tweet cleaning
-│   │   └── sentiment_analyzer.py  # HuggingFace + lexicon analyzer
+│   │   └── sentiment_analyzer.py  # IndoBERT analyzer
 │   ├── output/
 │   │   └── exporter.py      # CSV/JSON exporter
 │   └── main.py              # Entry point
-├── scripts/
-│   └── export_cookies.py    # Cookie export utility
 ├── tests/                   # Test suite (57 tests)
 ├── .env.example             # Environment template
 ├── requirements.txt          # Dependencies
@@ -208,13 +196,7 @@ python -m pytest --cov=src
 
 ## Sentiment Analysis Model
 
-The analyzer uses a hybrid approach:
-1. **HuggingFace Model** - `cardiffnlp/twitter-roberta-base-sentiment-latest`
-2. **Indonesian Lexicon** - Local dictionary with Indonesian slang and emoticons
-   - Positive: "mantap", "keren", "sukses", "bagus", "luar biasa", "❤", "🔥"...
-   - Negative: "kecewa", "gagal", "sedih", "marah", "parah", "💔", "😭"...
-
-When the lexicon agrees with the model, confidence is boosted. When they disagree, confidence is adjusted.
+The analyzer uses the HuggingFace Model IndoBERT (`w11wo/indonesian-roberta-base-sentiment-classifier`), which natively understands Indonesian text, slang, and context.
 
 ## Troubleshooting
 
@@ -227,8 +209,3 @@ When the lexicon agrees with the model, confidence is boosted. When they disagre
 - Use `--debug` to verify each tweet's sentiment
 - Indonesian text with slang may need manual verification
 - Low confidence (<50%) indicates ambiguous text
-
-### Cookie Export Fails
-1. Make sure Chrome is installed
-2. Close Chrome completely before exporting
-3. Try manual cookie extraction from DevTools

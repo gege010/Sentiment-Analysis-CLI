@@ -27,13 +27,28 @@ def print_dashboard(
 
     total = len(results)
     avg_conf = sum(r.confidence for r in results) / total
+    
+    score = ((counts['positive'] * 1.0) + (counts['neutral'] * 0.5) + (counts['negative'] * 0.0)) / total * 100
+    
+    if score >= 85:
+        grade = "[bold green]A (Sangat Baik)[/bold green]"
+    elif score >= 70:
+        grade = "[bold green]B (Baik)[/bold green]"
+    elif score >= 55:
+        grade = "[bold yellow]C (Cukup)[/bold yellow]"
+    elif score >= 40:
+        grade = "[bold red]D (Kurang)[/bold red]"
+    else:
+        grade = "[bold red]E (Sangat Kurang)[/bold red]"
 
     # Build overview table
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column("Metric", style="bold cyan")
     table.add_column("Value", style="white")
-    table.add_row("Topic", topic)
+    table.add_row("Topic/Product", topic)
     table.add_row("Total Tweets", str(total))
+    table.add_row("Product Grade", grade)
+    table.add_row("Grade Score", f"{score:.1f}/100")
     table.add_row("Avg Confidence", f"{avg_conf:.1%}")
     table.add_row("Positive", f"{counts['positive']} ({counts['positive']/total:.1%})")
     table.add_row("Neutral", f"{counts['neutral']} ({counts['neutral']/total:.1%})")
@@ -71,7 +86,7 @@ def print_dashboard(
     console.print(
         Panel(
             table,
-            title=f"[bold][CHART] Sentiment Analysis: {topic}[/bold]",
+            title=f"[bold][CHART] Product Grades Report: {topic}[/bold]",
             border_style="cyan",
         )
     )

@@ -6,6 +6,7 @@ venv/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
 
 # Environment
 .env
@@ -13,9 +14,6 @@ build/
 
 # Playwright
 .playwright/
-
-# Claude Code
-.claude/
 
 # Output (runtime reports)
 output/
